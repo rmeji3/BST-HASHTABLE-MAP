@@ -25,54 +25,46 @@ public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneD
     }
     private Node root;
     private int size = 0;
-    private Boolean insertHelper(Node curr, Node prev, K key, V value)
-    {
-
-        if (curr == null)
-        {
-            return false;
-        }
-        if(curr.key.compareTo(key) == 0){
-            curr.value = value;
+    private Boolean insertHelper(Node curr,K key, V value) {
+        if (curr == null) {
             return true;
         }
-        else if (curr.key.compareTo(key) < 0 && curr.left == null)
-        {
-            curr.left = new Node(key, value, curr);
+        int comparison = curr.key.compareTo(key);
+        if(comparison == 0) {
+            curr.value = value;
+            return true;
+        } else if(comparison > 0) {
+            if(curr.left == null) {
+                curr.left = new Node(key, value, curr);
+                return false;
+            } else {
+                return insertHelper(curr.left, key, value);
+            }
+        } else {
+            if(curr.right == null) {
+                curr.right = new Node(key, value, curr);
+                return false;
+            } else {
+                return insertHelper(curr.right, key, value);
+            }
         }
-        else if (curr.key.compareTo(key) > 0 && curr.right == null)
-        {
-            curr.right = new Node(key, value, curr);
-        }
-        else if (curr.key.compareTo(key) < 0)
-        {
-            insertHelper(curr.left, curr ,key, value);
-        }
-        else if (curr.key.compareTo(key) > 0)
-        {
-            insertHelper(curr.left, curr ,key, value);
-        }
-
-        return false;
     }
+
     @Override
     public boolean insert(K key, V value) throws NullValueException {
+//        if(root != null)
+//            System.out.println("root: " + root.key);
         if(value == null){
             throw new NullValueException();
         }
         if(root == null){
-            Node root = new Node(key, value, null);
-            this.root = root;
-            return false;
+            this.root = new Node(key, value, null);
         }
-        if(insertHelper(root, null ,key, value))
+        else if(insertHelper(root ,key, value))
         {
             return true;
         }
-        else
-        {
-            size++;
-        }
+        size++;
         return false;
     }
 
@@ -84,20 +76,16 @@ public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneD
         {
             return null;
         }
-
-        if (curr.key.compareTo(target) == 0)
+        int comparison = curr.key.compareTo(target);
+        if (comparison == 0)
         {
             return curr.value;
         }
-        if (curr.key.compareTo(target) < 0)
+        if (comparison > 0)
         {
             return findHelper(curr.left, target);
         }
-        if (curr.key.compareTo(target) > 0)
-        {
-            return findHelper(curr.right, target);
-        }
-        return null;
+        return findHelper(curr.right, target);
     }
 
     @Override
@@ -162,6 +150,8 @@ public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneD
     }
 
 
+
+
     private class BSTIterator implements Iterator<K> {
         Node cursor;
         Node previous;
@@ -172,6 +162,7 @@ public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneD
             while (cursor != null && cursor.left != null) {
                 cursor = cursor.left;
             }
+//            System.out.println("cursor: " + cursor.key);
         }
 
         @Override
