@@ -1,5 +1,3 @@
-import jdk.jfr.Description;
-
 import java.util.Iterator;
 
 public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneDictionary<K,V> {
@@ -52,8 +50,6 @@ public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneD
 
     @Override
     public boolean insert(K key, V value) throws NullValueException {
-//        if(root != null)
-//            System.out.println("root: " + root.key);
         if(value == null){
             throw new NullValueException();
         }
@@ -153,46 +149,31 @@ public class BinarySearchTreeDict<K extends Comparable<K>,V> implements ProjOneD
 
 
     private class BSTIterator implements Iterator<K> {
-        Node cursor;
-        Node previous;
+
+        ListQueue<K> keysQ = new ListQueue<K>();
+
+        private void insertToQ(Node curr){
+            if(curr == null)
+                return;
+            keysQ.enqueue(curr.key);
+            insertToQ(curr.left);
+            insertToQ(curr.right);
+        }
 
         private BSTIterator() {
-            cursor = root;
-            previous = null;
-            while (cursor != null && cursor.left != null) {
-                cursor = cursor.left;
-            }
-//            System.out.println("cursor: " + cursor.key);
+            insertToQ(root);
         }
 
         @Override
         public boolean hasNext() {
-            return cursor != null;
+            return keysQ.getSize() != 0;
         }
 
         @Override
         public K next() {
             if (!hasNext())
                 return null;
-
-            previous = cursor;
-
-            if (cursor.right != null) {
-                cursor = cursor.right;
-                while (cursor.left != null) {
-                    cursor = cursor.left;
-                }
-            } else {
-                Node child = cursor;
-                Node tempParent = cursor.parent;
-                while (tempParent != null && child == tempParent.right) {
-                    child = tempParent;
-                    tempParent = tempParent.parent;
-                }
-                cursor = tempParent;
-            }
-
-            return previous.key;
+            return keysQ.dequeue();
         }
     }
     @Override

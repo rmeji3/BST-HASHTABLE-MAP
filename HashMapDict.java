@@ -1,3 +1,4 @@
+import java.lang.reflect.Array;
 import java.util.Iterator;
 
 
@@ -7,55 +8,77 @@ public class HashMapDict<K, V> implements ProjOneDictionary<K, V> {
     private int size;
     private int population;
 
-    private K[] keysArr;
-    private V[] valuesArr;
+    class Node {
+        K key;
+        V value;
+        Boolean hasHad;
+
+        Node(){
+            key = null;
+            value = null;
+            hasHad = false;
+        }
+        Node (K key, V value){
+            this.key = key;
+            this.value = value;
+            hasHad = true;
+        }
+    }
+    private Node[] buckets;
     public HashMapDict() {
         size = 10;
         population = 0;
-        keysArr = (K[]) new Object[size];
-        valuesArr = (V[]) new Object[size];
+        buckets = (Node[]) Array.newInstance(Node.class, size);
 
         for (int i = 0; i < size; i++) {
-            keysArr[i] = null;
-            valuesArr[i] = null;
+            buckets[i] = new Node();
         }
+    }
+    private void insertHelper(int index, K key, V value){
+        buckets[index].hasHad = true;
+        buckets[index].key = key;
+        buckets[index].value = value;
     }
     @Override
     public boolean insert(K key, V value) throws NullValueException {
-        // Resize if necessary
+        if(value == null){
+            throw new NullValueException();
+        }
         if (population >= size / 2) {
             resize();
         }
-
         int hashIndex = key.hashCode() % size;
         for (int i = hashIndex; i < size + hashIndex; i++) {
             int index = i % size;
-            if (keysArr[index] == null || keysArr[index].equals(key)) {
-                keysArr[index] = key;
-                valuesArr[index] = value;
-                if (keysArr[index] == null) {
-                    population++;
-                }
+            if (buckets[index].key == null) {
+                insertHelper(index, key, value);
+                population++;
+                return false;
+            }
+            else if (buckets[index].key.equals(key)){
+                insertHelper(index, key, value);
                 return true;
             }
         }
-
-
         return false;
     }
 
+
     private void resize() throws NullValueException {
         size *= 2; // Double the size
-        K[] oldKeysArr = keysArr;
-        V[] oldValuesArr = valuesArr;
 
-        keysArr = (K[]) new Object[size];
-        valuesArr = (V[]) new Object[size];
+        Node[] oldBucket = buckets;
+
+        buckets = (Node[]) Array.newInstance(Node.class, size);
+        for (int i = 0; i < size; i++) {
+            buckets[i] = new Node();
+        }
+
         population = 0; // Reset population because it will be recalculated in insert
 
-        for (int i = 0; i < oldKeysArr.length; i++) {
-            if (oldKeysArr[i] != null) {
-                insert(oldKeysArr[i], oldValuesArr[i]);
+        for (Node node : oldBucket) {
+            if (node.key != null) {
+                insert(node.key, node.value);
             }
         }
     }
@@ -64,52 +87,80 @@ public class HashMapDict<K, V> implements ProjOneDictionary<K, V> {
     @Override
     public V find(K key) {
         int hashIndex = key.hashCode() % size;
-        if(keysArr[hashIndex] == key){
-            return valuesArr[hashIndex];
+        if (buckets[hashIndex].key == key){
+            return buckets[hashIndex].value;
         }
-        int currIndex = hashIndex;
-        while (keysArr[currIndex] != key){
-            currIndex++;
-            if (hashIndex == currIndex){
+        for (int i = hashIndex; i < size + hashIndex; i++) {
+            int index = i % size;
+            if (!buckets[index].hasHad){
                 return null;
             }
-            if (currIndex == size - 1){
-                currIndex = 0;
+            else if (buckets[index].key == key) {
+                return buckets[index].value;
             }
         }
-        return valuesArr[currIndex];
+        return null;
     }
 
     @Override
     public boolean delete(K key) {
         int hashIndex = key.hashCode() % size;
-        if(keysArr[hashIndex] == key){
-            keysArr[hashIndex] = null;
-            valuesArr[hashIndex] = null;
+        if (buckets[hashIndex].key == key){
+            buckets[hashIndex].key = null;
+            buckets[hashIndex].value = null;
+            population--;
             return true;
         }
-        int currIndex = hashIndex;
-        while (keysArr[currIndex] != key){
-            currIndex++;
-            if (hashIndex == currIndex){
+        for (int i = hashIndex; i < size + hashIndex; i++) {
+            int index = i % size;
+            if (!buckets[index].hasHad){
                 return false;
             }
-            if (currIndex == size - 1){
-                currIndex = 0;
+            else if (buckets[index].key == key) {
+                buckets[hashIndex].key = null;
+                buckets[hashIndex].value = null;
+                population--;
+                return true;
             }
         }
-        keysArr[hashIndex] = null;
-        valuesArr[hashIndex] = null;
-        return true;
+        return false;
     }
 
     @Override
     public int getSize() {
-        return size;
+        return population;
     }
 
+    private class HashIterator implements Iterator<K> {
+
+        ListQueue<K> keysQ = new ListQueue<K>();
+
+        private void insertToQ(){
+            for(Node node: buckets){
+                if (node.key != null)
+                    keysQ.enqueue(node.key);
+            }
+        }
+
+        private HashIterator() {
+            insertToQ();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return keysQ.getSize() != 0;
+        }
+
+        @Override
+        public K next() {
+            if (!hasNext())
+                return null;
+            return keysQ.dequeue();
+        }
+    }
     @Override
     public Iterator<K> iterator() {
-        return null;
+        return new HashIterator();
     }
+
 }
